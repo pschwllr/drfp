@@ -1,74 +1,33 @@
+import typer
+from typing import Optional
 import pickle
-from typing import TextIO
-import click
 from drfp import DrfpEncoder
 
+def run():
+    typer.run(main)
 
-@click.command()
-@click.argument("input_file", type=click.File("r"))
-@click.argument("output_file", type=click.File("wb+"))
-@click.option(
-    "--n_folded_length",
-    "-d",
-    default=2048,
-    help="The lenght / dimensionality of the fingerprint. Good values are between 128 and 2048.",
-)
-@click.option(
-    "--min_radius",
-    "-m",
-    default=0,
-    help="The minimum radius used to extract circular substructures from molecules. 0 includes single atoms",
-)
-@click.option(
-    "--radius",
-    "-r",
-    default=3,
-    help="The radius, or maximum radius used to extract circular substructures form molecules.",
-)
-@click.option(
-    "--rings/--no-rings",
-    default=True,
-    help="Whether or not to extract whole rings as substructures.",
-)
-@click.option(
-    "--mapping/--no-mapping",
-    default=False,
-    help="Whether or not to also export a mapping to help interpret the fingerprint.",
-)
-@click.option("--hydrogens", is_flag=True, help="Include hydrogens explicitly.")
-@click.option(
-    "--root", is_flag=True, help="Root central atoms during substructure generation."
-)
-@click.option(
-    "--silent", is_flag=True, help="Hide all output such as the progress bar."
-)
 def main(
-    input_file: TextIO,
-    output_file: TextIO,
-    n_folded_length: int,
-    min_radius: int,
-    radius: int,
-    rings: bool = True,
-    mapping: bool = False,
-    hydrogens: bool = False,
-    root: bool = False,
-    silent: bool = False,
+    input_file: typer.FileText = typer.Argument(..., help="The file containing one reaction SMILES per line."),
+    output_file: typer.FileBinaryWrite = typer.Argument(..., help="The output file, a pickle file containing the corresponding list of fingerprints."),
+    n_folded_length: int = typer.Option(2048, "--n_folded_length", "-d", help="The length / dimensionality of the fingerprint. Good values are between 128 and 2048."),
+    min_radius: int = typer.Option(0, "--min_radius", "-m", help="The minimum radius used to extract circular substructures from molecules. 0 includes single atoms."),
+    radius: int = typer.Option(3, "--radius", "-r", help="The radius, or maximum radius used to extract circular substructures from molecules."),
+    rings: bool = typer.Option(True, "--rings/--no-rings", help="Whether or not to extract whole rings as substructures."),
+    mapping: bool = typer.Option(False, "--mapping/--no-mapping", help="Whether or not to also export a mapping to help interpret the fingerprint."),
+    hydrogens: bool = typer.Option(False, "--hydrogens", help="Include hydrogens explicitly."),
+    root: bool = typer.Option(False, "--root", help="Root central atoms during substructure generation."),
+    silent: bool = typer.Option(False, "--silent", help="Hide all output such as the progress bar.")
 ):
-    """Creates fingerprints from a file containing one reaction SMILES per line.
+    """Creates fingerprints from a file containing one reaction SMILES per line."""
 
-    INPUT_FILE is the file containing one reaction SMILES per line.
-
-    OUTPUT_FILE will be a pickle file containing the corresponding list of fingerprints. If mapping is chosen, an addition file with the suffix .map will be created.
-    """
-    smiles = []
-    for line in input_file:
-        smiles.append(line.strip())
+    smiles = [line.strip() for line in input_file]
 
     show_progress_bar = not silent
 
     fps = None
     fragment_map = None
 
+    # Assuming DrfpEncoder.encode() is a placeholder for the actual encoding function
     if mapping:
         fps, fragment_map = DrfpEncoder.encode(
             smiles,
@@ -102,6 +61,5 @@ def main(
         with open(".".join(filename_parts), "wb+") as f:
             pickle.dump(fragment_map, f)
 
-
 if __name__ == "__main__":
-    main()
+    run()
